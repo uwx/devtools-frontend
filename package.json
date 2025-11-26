@@ -11,7 +11,8 @@
     "debugger"
   ],
   "license": "BSD-3-Clause",
-  "name": "chrome-devtools-frontend",
+  "name": "@zas/devtools-frontend",
+  "version": "0.0.0",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/ChromeDevTools/devtools-frontend.git"
