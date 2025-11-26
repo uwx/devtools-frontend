@@ -1,0 +1,84 @@
+name: Build and Publish to NPM
+
+on:
+  push:
+    branches:
+      - main
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+jobs:
+  build-and-publish:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - name: Checkout depot_tools
+        run: git clone https://chromium.googlesource.com/chromium/tools/depot_tools.git
+
+      - name: Add depot_tools to path
+        run: echo $(realpath depot_tools) >> $GITHUB_PATH
+
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          path: devtools/devtools-frontend
+
+      - name: Create gclient config
+        run: gclient config --unmanaged https://chromium.googlesource.com/devtools/devtools-frontend
+        working-directory: devtools
+
+      - name: Sync dependencies
+        run: gclient sync
+        working-directory: devtools/devtools-frontend
+
+      - name: Generate build files (gn)
+        run: gn gen out/Default
+        working-directory: devtools/devtools-frontend
+
+      - name: Build DevTools Frontend (autoninja)
+        run: autoninja -C out/Default
+        working-directory: devtools/devtools-frontend
+
+      - name: Set up Node.js for NPM
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          registry-url: 'https://registry.npmjs.org'
+
+      - name: Prepare for npm publish
+        working-directory: devtools/devtools-frontend
+        run: |
+          # Remove the internal .npmrc that points to internal registry
+          rm -f .npmrc
+
+      - name: Publish to npm (on tag)
+        if: startsWith(github.ref, 'refs/tags/v')
+        working-directory: devtools/devtools-frontend
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+          TAG_NAME: ${{ github.ref_name }}
+        run: |
+          # Set version from tag
+          npm version --no-git-tag-version $TAG_NAME
+          npm publish --provenance --access public
+
+      - name: Publish to npm (on main branch, with prerelease version)
+        if: github.ref == 'refs/main' && !startsWith(github.ref, 'refs/tags/')
+        working-directory: devtools/devtools-frontend
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          # Create a prerelease version based on commit SHA
+          COMMIT_SHA=$(git rev-parse --short HEAD)
+          TIMESTAMP=$(date +%Y%m%d%H%M%S)
+          CURRENT_VERSION=$(node -p "require('./package.json').version")
+          # If version doesn't exist, use 0.0.0
+          if [ -z "$CURRENT_VERSION" ] || [ "$CURRENT_VERSION" = "null" ]; then
+            CURRENT_VERSION="0.0.0"
+          fi
+          NEW_VERSION="${CURRENT_VERSION}-dev.${TIMESTAMP}.${COMMIT_SHA}"
+          npm version --no-git-tag-version $NEW_VERSION
+          npm publish --provenance --access public --tag dev
