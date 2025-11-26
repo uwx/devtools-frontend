@@ -5,8 +5,7 @@ This repository includes a GitHub Actions workflow that automatically builds and
 ## Workflow: `build-and-publish-npm.yml`
 
 The workflow is triggered on:
-- Push to the `main` branch (publishes a dev/prerelease version)
-- Push of tags starting with `v*` (publishes a stable version)
+- Push to the `main` branch (builds, creates a git tag, and publishes to npm)
 - Manual workflow dispatch
 
 ## Required Secrets
@@ -37,19 +36,13 @@ An npm authentication token with publish permissions for the `@zas/devtools-fron
 
 ## Publishing Behavior
 
-### On Tag Push (Stable Release)
-When you push a tag like `v1.0.0`:
-- The workflow builds the project
-- Sets the package version to match the tag (e.g., `1.0.0`)
-- Publishes to npm with the `latest` tag
-- Uses npm provenance for supply chain security
-
-### On Main Branch Push (Development Release)
+### On Main Branch Push
 When you push to the `main` branch:
 - The workflow builds the project
-- Creates a prerelease version like `0.0.0-dev.20231126123456.abc1234`
-- Publishes to npm with the `dev` tag
-- Users can install with `npm install @zas/devtools-frontend@dev`
+- Creates a version based on commit hash like `0.0.0-commit.abc1234.20231126123456`
+- Creates a git tag with prefix like `npm-abc1234` (where `abc1234` is the short commit hash)
+- Publishes to npm with the `latest` tag
+- Uses npm provenance for supply chain security
 
 ### Manual Trigger
 You can also manually trigger the workflow from the Actions tab in GitHub.
@@ -61,7 +54,8 @@ The workflow:
 2. Syncs project dependencies using `gclient`
 3. Generates build files using `gn`
 4. Builds the project using `autoninja`
-5. Publishes the built artifacts to npm
+5. Creates a git tag based on the commit hash (format: `npm-<short-hash>`)
+6. Publishes the built artifacts to npm
 
 ## Package Information
 
@@ -73,11 +67,11 @@ The workflow:
 ## Installing the Package
 
 ```bash
-# Install the latest stable version
+# Install the latest version (based on latest commit to main)
 npm install @zas/devtools-frontend
 
-# Install the latest development version
-npm install @zas/devtools-frontend@dev
+# Install a specific version by commit hash
+npm install @zas/devtools-frontend@0.0.0-commit.abc1234.20231126123456
 ```
 
 ## Notes
