@@ -74,12 +74,12 @@ jobs:
           npm version --no-git-tag-version $VERSION
           
           # Create and push the tag
-          cd ../..
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git tag -a "$TAG_NAME" -m "npm publish for commit ${FULL_COMMIT_SHA}"
-          git push origin "$TAG_NAME" || echo "Tag already exists, continuing..."
+          # cd ../..
+          # git config user.name "github-actions[bot]"
+          # git config user.email "github-actions[bot]@users.noreply.github.com"
+          # git tag -a "$TAG_NAME" -m "npm publish for commit ${FULL_COMMIT_SHA}"
+          # git push origin "$TAG_NAME" || echo "Tag already exists, continuing..."
           
           # Publish to npm
-          cd devtools/devtools-frontend
+          # cd devtools/devtools-frontend
           npm publish --provenance --access public
